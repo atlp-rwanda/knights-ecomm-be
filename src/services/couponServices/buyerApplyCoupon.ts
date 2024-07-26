@@ -28,6 +28,12 @@ export const buyerApplyCouponService = async (req: Request, res: Response) => {
       if (coupon.usageTimes == coupon.maxUsageLimit) {
         return res.status(400).json({ message: 'Coupon Discount Ended' });
       }
+
+      if (req.user?.id) {
+        if (coupon.usedBy.includes(req.user.id)) {
+          return res.status(400).json({ message: 'You already used this coupon discount' });
+        }
+      }
     }
     const couponProductId = coupon.product.id;
 
@@ -79,22 +85,20 @@ export const buyerApplyCouponService = async (req: Request, res: Response) => {
     await sendNotification({
       content: `Coupon Code successfully activated discount on product: ${couponCartItem.product.name}`,
       type: 'coupon',
-      user: cart.user
-    })
+      user: cart.user,
+    });
 
     await sendNotification({
       content: `Buyer: "${cart?.user.firstName} ${cart?.user.lastName}" used coupon and got discount on product: "${couponCartItem.product.name}"`,
-      type:'coupon',
-      user: coupon.vendor
+      type: 'coupon',
+      user: coupon.vendor,
     });
 
-    return res
-      .status(200)
-      .json({
-        message: `Coupon Code successfully activated discount on product: ${couponCartItem.product.name}`,
-        amountDiscounted: amountReducted,
-      });
+    return res.status(200).json({
+      message: `Coupon Code successfully activated discount on product: ${couponCartItem.product.name}`,
+      amountDiscounted: amountReducted,
+    });
   } catch (error) {
-        return responseError(res, 500, (error as Error).message);
-    }
+    return responseError(res, 500, (error as Error).message);
+  }
 };
